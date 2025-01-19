@@ -1,4 +1,4 @@
-# Data Cleaning and Analysis Project
+# Bike Store Analysis Project
 
 This project demonstrates a comprehensive approach to data cleaning, analysis, and generating insights using SQL. Below, you will find a detailed description of the steps taken, the purpose of each query, and the key results.
 
