@@ -1,0 +1,127 @@
+
+
+use bike_store;
+select * from customers;
+
+-- first step Handling Missing Values and data cleaning by replacing null values of phone into a 0000 values 
+Update customers 
+set Phone = '000000' 
+where phone is Null;
+
+-- checking if order_items has any NULL value
+select * from order_items 
+where 
+order_id is Null or
+item_id is Null or
+product_id is Null or 
+quantity is Null or
+list_price is Null or
+discount is Null
+;
+
+-- Checking if order_items has any NULL value before joining the tables, Handling Missing Data.
+
+select * from products 
+where 
+product_id is Null or
+product_name is Null or
+brand_id is Null or 
+category_id is Null or
+model_year is Null or
+list_price is Null
+;
+
+select * from products;
+
+--DATA INTEGRATION PROCESS : JOINING ORDERS AND CUSTOMERS TABLES 
+select * from orders;
+select * from customers;
+
+select o.order_id, o.customer_id, o.order_status,o.required_date, o.shipped_date, o.store_id, o.staff_id, c.first_name, c.last_name, c.phone, c.email, c.street, c.city, c.state, c.zip_code 
+from orders o
+left join customers c
+on o.customer_id=c.customer_id
+union
+select o.order_id, o.customer_id, o.order_status,o.required_date, o.shipped_date, o.store_id, o.staff_id, c.first_name, c.last_name, c.phone, c.email, c.street, c.city, c.state, c.zip_code 
+from orders o
+right join customers c
+on o.customer_id=c.customer_id
+;
+
+-- converting it into a VIEW 
+
+create view full_orderdata2 as
+(select o.order_id, o.customer_id, o.order_status,o.required_date, o.shipped_date, o.store_id, o.staff_id, c.first_name, c.last_name, c.phone, concat(street, ",", city, ",", state,",", zip_code) as full_address  
+from orders o
+left join customers c
+on o.customer_id=c.customer_id
+union
+select o.order_id, o.customer_id, o.order_status,o.required_date, o.shipped_date, o.store_id, o.staff_id, c.first_name, c.last_name, c.phone, concat(street, ",", city, ",", state,",", zip_code) as full_address  
+from orders o
+right join customers c
+on o.customer_id=c.customer_id
+)
+;
+
+select * from full_orderdata1;
+
+select *,concat(street, ",", city, ",", state,",", zip_code) as full_address from full_orderdata1 
+;
+
+drop table Fullpurchase_data ;
+create table Fullpurchase_data as
+select o.order_id, o.customer_id, o.order_status,o.required_date, o.shipped_date, o.store_id, o.staff_id, c.first_name, c.last_name, c.phone, c.email, concat(street, ",", city, ",", state,",", zip_code) as full_address  
+from orders o
+left join customers c
+on o.customer_id=c.customer_id
+union
+select o.order_id, o.customer_id, o.order_status,o.required_date, o.shipped_date, o.store_id, o.staff_id, c.first_name, c.last_name, c.phone, c.email, concat(street, ",", city, ",", state,",", zip_code) as full_address  
+from orders o
+right join customers c
+on o.customer_id=c.customer_id
+;
+
+select * from products;
+select * from fullpurchase_data3;
+select * from stocks;
+select * from order_items;
+
+create table fullpurchase_data4 as
+select fpd.order_id, fpd.customer_id, fpd.order_status, fpd.required_date, fpd.shipped_date, fpd.store_id, fpd.staff_id, fpd.first_name, fpd.last_name, fpd.phone, 
+fpd.full_address, fpd.email,
+oi.item_id, oi.product_id, oi.quantity, oi.list_price, oi.discount, Round(((oi.quantity*oi.list_price)*(1-oi.discount)),2) as final_cost
+from fullpurchase_data fpd
+join 
+order_items oi
+on
+fpd.order_id=oi.order_id
+;
+
+
+drop table fullpurchase_data4;
+select * from fullpurchase_data4 order by shipped_date desc;
+
+-- find all the customers who purchased multiple times in last 1 year and add them to loyal customer list
+
+select first_name, last_name, customer_id, email, count(*) as purchase_count from fullpurchase_data4 
+where shipped_date Between '2017-04-01' and '2018-04-01' 
+group by first_name, last_name, customer_id, email
+;
+
+-- find all the customers who purchased multiple items or else over $5000 of purchase in last 1 year and add them to premium customer list
+With premium_customer1 as(
+select first_name, last_name, email, shipped_date,
+case
+when final_cost > 5000 then 'yes'
+else 'no'
+end as premium_customer
+from fullpurchase_data4
+where shipped_date Between '2017-04-01' and '2018-04-01') 
+
+select DISTINCT first_name, last_name, email, shipped_date 
+from premium_customer1
+where premium_customer = 'yes'
+;
+
+
+
