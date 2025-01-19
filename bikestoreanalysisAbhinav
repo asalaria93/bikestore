@@ -1,14 +1,11 @@
 
 
-use bike_store;
-select * from customers;
-
--- first step Handling Missing Values and data cleaning by replacing null values of phone into a 0000 values 
+-- 1 first step data cleaning by changing null values of phone into a 0000 values 
 Update customers 
 set Phone = '000000' 
 where phone is Null;
 
--- checking if order_items has any NULL value
+-- 2 checking if order_items has any NULL value
 select * from order_items 
 where 
 order_id is Null or
@@ -19,7 +16,7 @@ list_price is Null or
 discount is Null
 ;
 
--- Checking if order_items has any NULL value before joining the tables, Handling Missing Data.
+-- 2.1 checking if products has any NULL value
 
 select * from products 
 where 
@@ -31,9 +28,8 @@ model_year is Null or
 list_price is Null
 ;
 
-select * from products;
 
---DATA INTEGRATION PROCESS : JOINING ORDERS AND CUSTOMERS TABLES 
+-- 3.0 JOINING ORDERS AND CUSTOMERS TABLES
 select * from orders;
 select * from customers;
 
@@ -48,7 +44,7 @@ right join customers c
 on o.customer_id=c.customer_id
 ;
 
--- converting it into a VIEW 
+-- 3.1 converting it into a VIEW
 
 create view full_orderdata2 as
 (select o.order_id, o.customer_id, o.order_status,o.required_date, o.shipped_date, o.store_id, o.staff_id, c.first_name, c.last_name, c.phone, concat(street, ",", city, ",", state,",", zip_code) as full_address  
@@ -68,7 +64,6 @@ select * from full_orderdata1;
 select *,concat(street, ",", city, ",", state,",", zip_code) as full_address from full_orderdata1 
 ;
 
-drop table Fullpurchase_data ;
 create table Fullpurchase_data as
 select o.order_id, o.customer_id, o.order_status,o.required_date, o.shipped_date, o.store_id, o.staff_id, c.first_name, c.last_name, c.phone, c.email, concat(street, ",", city, ",", state,",", zip_code) as full_address  
 from orders o
@@ -101,14 +96,16 @@ fpd.order_id=oi.order_id
 drop table fullpurchase_data4;
 select * from fullpurchase_data4 order by shipped_date desc;
 
--- find all the customers who purchased multiple times in last 1 year and add them to loyal customer list
+-- 4 find all the customers who purchased multiple times in last 1 year and add them to loyal customer list
 
 select first_name, last_name, customer_id, email, count(*) as purchase_count from fullpurchase_data4 
 where shipped_date Between '2017-04-01' and '2018-04-01' 
 group by first_name, last_name, customer_id, email
+having count(*)>1
+order by purchase_count Desc
 ;
 
--- find all the customers who purchased multiple items or else over $5000 of purchase in last 1 year and add them to premium customer list
+-- 5 find all the customers who purchased multiple items or else over $5000 of purchase in last 1 year and add them to premium customer list
 With premium_customer1 as(
 select first_name, last_name, email, shipped_date,
 case
@@ -123,5 +120,42 @@ from premium_customer1
 where premium_customer = 'yes'
 ;
 
+-- 6 Total Revenue and Top-Contributing Products/Categories
+-- 6.1 Total revenue generated in the last year
+select * from fullpurchase_data4;
 
+select round(sum(coalesce(quantity, 0) * coalesce(list_price, 0) * (1 - coalesce(discount, 0))), 2) as total_revenue
+from fullpurchase_data4
+where shipped_date is not null 
+and shipped_date between '2017-04-01' and '2018-04-01';
+
+-- 6.2 Top-contributing products by revenue
+select product_id, round(sum((quantity * list_price) * (1 - discount)), 2) as revenue
+from fullpurchase_data4
+group by product_id
+order by revenue desc
+limit 10;
+
+-- 6.3 Top-contributing categories by revenue
+select p.category_id, round(sum((oi.quantity * oi.list_price) * (1 - oi.discount)), 2) as revenue
+from order_items oi
+join products p on oi.product_id = p.product_id
+group by p.category_id
+order by revenue desc
+limit 10;
+
+-- 7 Top-Selling Products by Quantity and Revenue
+-- 7.1 Top-selling products by quantity
+select product_id, sum(quantity) as total_quantity
+from fullpurchase_data4
+group by product_id
+order by total_quantity desc
+limit 10;
+
+-- 7.2 Top-selling products by revenue
+select product_id, round(sum((quantity * list_price) * (1 - discount)), 2) as revenue
+from fullpurchase_data4
+group by product_id
+order by revenue desc
+limit 10;
 
