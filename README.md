@@ -8,12 +8,10 @@ This project demonstrates a comprehensive approach to data cleaning, analysis, a
 3. [Data Analysis](#data-analysis)
 4. [Key Queries](#key-queries)
     - [Join Operations](#join-operations)
-    - [View Creation](#view-creation)
     - [Customer Insights](#customer-insights)
     - [Revenue Analysis](#revenue-analysis)
     - [Top-Selling Products and Categories](#top-selling-products-and-categories)
-5. [How to Use](#how-to-use)
-6. [Results](#results)
+5.  [Results](#results)
 
 ---
 
